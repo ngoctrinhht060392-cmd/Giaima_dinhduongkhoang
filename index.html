@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SĂN MẬT MÃ – GIẢI MÃ KHO BÁU SINH HỌC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #10b981; 
+            --secondary: #3b82f6; 
+            --bg-color: #f0fdf4; 
+            --text-color: #1f2937; 
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#d1fae5 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-color);
+            overflow-x: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        h1, h2, h3, .heading-font {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        /* Ngôi nhà kho báu */
+        .house-container {
+            position: relative;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 4px solid #059669;
+            padding: 20px;
+            margin-top: 50px;
+        }
+
+        .house-roof {
+            position: absolute;
+            top: -55px;
+            left: -4px;
+            right: -4px;
+            height: 50px;
+            background: #059669;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 5px;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .bio-decor {
+            position: absolute;
+            font-size: 1.75rem;
+            opacity: 0.8;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.1));
+            z-index: 10;
+        }
+        
+        .decor-1 { top: -35px; left: 10%; }
+        .decor-2 { top: -35px; right: 10%; }
+        .decor-3 { bottom: 10px; left: -25px; }
+        .decor-4 { bottom: 10px; right: -25px; }
+
+        /* Lưới chữ cái */
+        #word-grid {
+            display: grid;
+            gap: 3px;
+            justify-content: center;
+            align-content: center;
+            background-color: #ecfdf5;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px dashed #34d399;
+        }
+
+        .grid-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: clamp(12px, 1.8vw, 22px);
+            color: #374151;
+            cursor: crosshair;
+            text-transform: uppercase;
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            aspect-ratio: 1 / 1;
+        }
+
+        .grid-cell:hover, .grid-cell.hovered {
+            background-color: #dbeafe;
+            border-color: #93c5fd;
+            transform: scale(1.05);
+            z-index: 5;
+        }
+
+        .grid-cell.selected {
+            background-color: #fef08a;
+            border-color: #eab308;
+            color: #854d0e;
+        }
+
+        .grid-cell.found {
+            background-color: #34d399;
+            border-color: #059669;
+            color: white;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+        }
+
+        /* Danh sách câu hỏi cuộn */
+        .clue-list-container {
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #10b981 #f3f4f6;
+        }
+        .clue-list-container::-webkit-scrollbar { width: 6px; }
+        .clue-list-container::-webkit-scrollbar-thumb { background-color: #10b981; border-radius: 10px; }
+
+        .clue-card {
+            background: white;
+            border-left: 5px solid #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .clue-card.solved {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+
+        #notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+        #notification.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: flex; flex-direction: column; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .modal-bg {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <script>
+        const defaultRawData = [
+            { question: "Cơ quan chuyên trách ở rễ có thành mỏng, không phủ cutin, đảm nhận chức năng hút nước chính ở cây trên cạn?", answer: "LONGHUT" },
+            { question: "Tên loại tế bào chết có trong mạch gỗ cùng với quản bào là?", answer: "MACHONG" },
+            { question: "Hiện tượng giọt nước đọng lại ở mép lá vào buổi sáng sớm do áp suất rễ đẩy lên?", answer: "UGIOT" },
+            { question: "Lớp cấu trúc không thấm nước nằm ở nội bì rễ, giúp chặn con đường gian bào?", answer: "DAICASPARY" },
+            { question: "Cơ chế vận chuyển nước từ dung dịch đất nhược trương vào tế bào lông hút ưu trương?", answer: "THAMTHAU" },
+            { question: "Loại mạch sống đảm nhận vận chuyển chất hữu cơ từ lá đến các cơ quan chứa?", answer: "MACHRAY" },
+            { question: "Loại tế bào ở lá có đặc điểm thành ngoài mỏng, thành trong dày, điều tiết sự thoát hơi nước?", answer: "KHIKHONG" },
+            { question: "Tên nguyên tố khoáng đa lượng là thành phần trung tâm cấu tạo nên nhân diệp lục?", answer: "MAGNESIUM" },
+            { question: "Dạng ion vô cơ chứa Nitrogen có mang điện tích âm mà rễ cây có thể hấp thụ?", answer: "NITRATE" },
+            { question: "Dạng ion vô cơ chứa Nitrogen có mang điện tích dương mà rễ cây có thể hấp thụ?", answer: "AMMONIUM" },
+            { question: "Giải mã tên enzyme xúc tác cho bước chuyển NO3- thành NO2- trong tế bào thực vật?", answer: "NITRATE REDUCTASE" },
+            { question: "Trong quá trình đồng hóa Ammonium khi amonium kết hợp với ………….sẽ tạo thành các amino acid?", answer: "KETOACID" },
+            { question: "Giải mã 3 lực cấu thành động lực dòng mạch gỗ gồm: (1) Lực đẩy của áp suất rễ; (2) Lực kéo do thoát hơi nước; (3) Lực [?] giữa các phân tử nước và lực bám với thành mạch?", answer: "LIENKET" },
+            { question: "Tên con đường vận chuyển nước đi xuyên qua tế bào chất của các tế bào nối với nhau qua cầu sinh chất?", answer: "TEBAOCHAT" },
+            { question: "Tên con đường vận chuyển nước đi qua không gian giữa các tế bào và thành tế bào?", answer: "GIANBAO" },
+            { question: "Hiện tượng thân cây rỉ nhựa chảy ra khi bị cắt ngang là do lực nào đẩy lên?", answer: "APSUATRE" },
+            { question: "Khi bón quá nhiều phân hóa học vào gốc, dung dịch đất trở nên [?] so với dịch tế bào rễ làm cây bị héo?", answer: "UUTRUONG" },
+            { question: "Nguyên tắc tưới nước hợp lý phải dựa trên trạng thái duy trì lượng nước rễ hấp thụ lượng nước thoát ra, gọi là trạng thái gì?", answer: "CANBANGNUOC" },
+            { question: "Tầng chất béo phủ trên bề mặt lá giúp hạn chế sự thoát hơi nước không qua khí khổng có tên là gì?", answer: "CUTIN" },
+            { question: "Tên cơ chế năng lượng mà tế bào rễ phải dùng để vận chuyển chất khoáng ngược gradient nồng độ từ đất vào rễ?", answer: "CHUDONG" }
+        ];
+
+        const LS_QUESTIONS_KEY = 'bio_game_questions_data';
+        let rawData = JSON.parse(localStorage.getItem(LS_QUESTIONS_KEY)) || defaultRawData;
+
+        function normalizeKeyword(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                      .replace(/[^a-zA-Z]/g, "")
+                      .toUpperCase();
+        }
+
+        let gameData = [];
+        function initGameData() {
+            gameData = rawData.map((item, index) => ({
+                id: index,
+                question: item.question,
+                rawAnswer: item.answer,
+                keyword: normalizeKeyword(item.answer),
+                found: false
+            }));
+        }
+        initGameData();
+    </script>
+
+    <div id="start-screen" class="screen active flex-1 items-center justify-center p-4">
+        <div class="bg-white p-6 md:p-10 rounded-2xl shadow-2xl border-4 border-emerald-500 max-w-2xl w-full text-center relative overflow-hidden">
+            <div class="absolute -top-10 -left-10 text-9xl opacity-10">🧬</div>
+            <div class="absolute -bottom-10 -right-10 text-9xl opacity-10">🔬</div>
+            
+            <h1 class="text-3xl md:text-5xl font-black text-emerald-600 mb-4 heading-font">
+                🔐 SĂN MẬT MÃ<br>
+                <span class="text-2xl md:text-3xl text-blue-600">GIẢI MÃ KHO BÁU SINH HỌC</span>
+            </h1>
+            <p class="text-gray-600 mb-8 text-base md:text-lg">Khám phá kiến thức Sinh học bằng cách tìm các từ khóa ẩn giấu!</p>
+            
+            <div class="mb-8 text-left bg-emerald-50 p-4 md:p-6 rounded-xl border border-emerald-200 text-sm md:text-base">
+                <h3 class="font-bold text-emerald-800 mb-2 flex items-center"><span class="text-2xl mr-2">📜</span> CÁCH CHƠI</h3>
+                <ol class="list-decimal pl-5 space-y-1 text-emerald-900">
+                    <li>Nhập tên đội của bạn.</li>
+                    <li>Đọc kỹ danh sách <strong>Manh mối câu hỏi</strong> hiển thị ở cột bên phải màn hình chơi.</li>
+                    <li>Tìm từ khóa tương ứng trong bảng chữ cái (Ngang, Dọc, Chéo).</li>
+                    <li>Kéo chuột từ chữ cái đầu đến chữ cái cuối để xác nhận từ khóa.</li>
+                </ol>
+            </div>
+
+            <div class="max-w-md mx-auto">
+                <input type="text" id="team-name" placeholder="👥 Nhập tên đội của bạn (Vd: Đội Sinh 11)" 
+                    class="w-full text-lg md:text-xl p-3 md:p-4 border-2 border-gray-300 rounded-xl mb-4 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200 transition text-center font-bold">
+                
+                <button onclick="startGame()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-lg md:text-xl font-bold py-3 md:py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105 flex justify-center items-center">
+                    <span class="mr-2">🚀</span> BẮT ĐẦU SĂN MẬT MÃ
+                </button>
+            </div>
+            
+            <button onclick="showLeaderboard()" class="mt-6 text-gray-500 hover:text-emerald-600 underline font-semibold transition">
+                🏆 Xem bảng xếp hạng
+            </button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen flex-1 flex-col h-full hidden">
+        <header class="bg-white shadow-md py-3 px-4 md:px-6 flex flex-col md:flex-row justify-between items-center border-b-4 border-emerald-500 sticky top-0 z-50 gap-2">
+            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                <div class="text-xl md:text-2xl font-black text-emerald-600 heading-font">🧬 KHO BÁU SINH HỌC</div>
+                <div class="text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-full text-sm">
+                    Đội: <span id="display-team-name" class="text-blue-600 font-bold">---</span>
+                </div>
+            </div>
+            <div class="flex gap-2 md:gap-4 items-center w-full md:w-auto justify-between md:justify-end">
+                <div class="text-center bg-yellow-100 px-3 py-1 rounded-xl border border-yellow-300 shadow-inner">
+                    <div class="text-[10px] text-yellow-700 font-bold uppercase">Điểm</div>
+                    <div id="score-display" class="text-base md:text-xl font-black text-yellow-600">0</div>
+                </div>
+                <div class="text-center bg-blue-100 px-3 py-1 rounded-xl border border-blue-300 shadow-inner">
+                    <div class="text-[10px] text-blue-700 font-bold uppercase">Giải mã</div>
+                    <div class="text-base md:text-xl font-black text-blue-600"><span id="found-display">0</span>/<span id="total-display">0</span></div>
+                </div>
+                <div class="text-center bg-red-100 px-3 py-1 rounded-xl border border-red-300 shadow-inner w-20">
+                    <div class="text-[10px] text-red-700 font-bold uppercase">Thời gian</div>
+                    <div id="timer-display" class="text-base md:text-xl font-black text-red-600 font-mono">00:00</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout: Trái là lưới, Phải là danh sách câu hỏi -->
+        <main class="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden h-[calc(100vh-75px)]">
+            
+            <!-- Vùng trái: Bảng chữ cái nhà kho báu (chiếm không gian rộng hơn) -->
+            <div class="w-full lg:w-7/12 xl:w-2/3 flex items-center justify-center relative overflow-auto p-2">
+                <div class="house-container w-full max-w-3xl" id="house-element">
+                    <div class="house-roof heading-font text-lg">🏠 NHÀ KHO BÁU MẬT MÃ</div>
+                    <div class="bio-decor decor-1 hidden sm:block">🧬</div>
+                    <div class="bio-decor decor-2 hidden sm:block">🌿</div>
+                    <div class="bio-decor decor-3 hidden sm:block">🦠</div>
+                    <div class="bio-decor decor-4 hidden sm:block">🔬</div>
+                    
+                    <div id="word-grid" class="w-full min-h-[320px] md:min-h-[420px]"></div>
+                </div>
+            </div>
+
+            <!-- Vùng phải: Danh sách câu hỏi hiển thị liên tục cho học sinh quan sát -->
+            <div class="w-full lg:w-5/12 xl:w-1/3 bg-white rounded-2xl shadow-xl border-2 border-emerald-300 flex flex-col overflow-hidden">
+                <div class="bg-emerald-600 text-white p-3 font-bold text-base md:text-lg heading-font flex justify-between items-center shadow-md">
+                    <span>🔎 MANH MỐI CÂU HỎI</span>
+                    <span class="text-xs bg-emerald-700 px-2 py-1 rounded-full">Trượt để xem thêm</span>
+                </div>
+                <div id="clues-container" class="clue-list-container p-3 flex flex-col gap-3">
+                    <!-- Danh sách câu hỏi render bằng JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="end-screen" class="screen fixed inset-0 modal-bg z-[100] items-center justify-center hidden p-4">
+        <div class="bg-white p-6 md:p-10 rounded-3xl shadow-2xl border-8 border-emerald-400 max-w-lg w-full text-center relative">
+            <div class="text-5xl mb-4">🎉</div>
+            <h2 class="text-3xl font-black text-emerald-600 mb-2 heading-font">CHÚC MỪNG!</h2>
+            <p class="text-lg text-gray-600 mb-6 font-bold">Đã giải mã toàn bộ kho báu sinh học!</p>
+            
+            <div class="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 border border-gray-200 text-left">
+                <div class="flex justify-between font-bold">
+                    <span class="text-gray-500">Đội:</span>
+                    <span id="final-team" class="text-blue-600">---</span>
+                </div>
+                <div class="flex justify-between font-black text-lg">
+                    <span class="text-gray-500">Tổng điểm:</span>
+                    <span id="final-score" class="text-yellow-500">0</span>
+                </div>
+                <div class="flex justify-between font-bold">
+                    <span class="text-gray-500">Thời gian:</span>
+                    <span id="final-time" class="text-red-500">00:00</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="showLeaderboard()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow transition">
+                    🏆 Xem BXH
+                </button>
+                <button onclick="resetGame()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-xl shadow transition">
+                    🔄 Chơi lại
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng xếp hạng & Quản trị giáo viên -->
+    <div id="leaderboard-screen" class="screen fixed inset-0 modal-bg z-[110] items-center justify-center hidden p-4">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-black text-blue-600 heading-font">🏆 BẢNG XẾP HẠNG</h2>
+                <button onclick="closeLeaderboard()" class="text-gray-400 hover:text-red-500 text-3xl leading-none">&times;</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto mb-4 border rounded-xl">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-blue-50 text-blue-800">
+                            <th class="p-3 border-b">Hạng</th>
+                            <th class="p-3 border-b">Tên Đội</th>
+                            <th class="p-3 border-b text-right">Điểm</th>
+                            <th class="p-3 border-b text-right">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+
+            <div class="border-t pt-3">
+                <button onclick="toggleTeacherAdmin()" class="text-xs text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1">
+                    ⚙️ Quản trị Giáo viên (Sửa câu hỏi)
+                </button>
+                <div id="teacher-admin" class="hidden mt-2 bg-gray-50 p-3 rounded-lg border">
+                    <p class="text-xs font-bold text-gray-700 mb-1">Mật khẩu (Giaovien123):</p>
+                    <div class="flex gap-2">
+                        <input type="password" id="teacher-pwd" class="flex-1 p-2 border rounded text-xs" placeholder="Mật khẩu...">
+                        <button onclick="openEditQuestions()" class="bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold">✏️ Sửa câu hỏi</button>
+                        <button onclick="clearLeaderboard()" class="bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold">🗑️ Xóa BXH</button>
+                    </div>
+                    <p id="teacher-msg" class="text-red-500 text-xs mt-1 font-bold hidden"></p>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+                 <button onclick="closeLeaderboard()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-xl text-sm">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal sửa câu hỏi dành cho giáo viên -->
+    <div id="edit-questions-screen" class="screen fixed inset-0 modal-bg z-[120] items-center justify-center hidden p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-xl font-black text-blue-600 heading-font">✏️ QUẢN LÝ CÂU HỎI & MẬT MÃ</h2>
+                <button onclick="closeEditQuestions()" class="text-gray-400 hover:text-red-500 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="questions-list-container" class="flex-1 overflow-y-auto mb-4 pr-2 space-y-3"></div>
+            <div class="flex justify-between border-t pt-3">
+                <button onclick="addNewQuestionRow()" class="bg-emerald-100 text-emerald-700 font-bold py-2 px-4 rounded-lg text-sm">+ Thêm câu hỏi</button>
+                <div class="flex gap-2">
+                    <button onclick="restoreDefaultQuestions()" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg text-sm">Khởi tạo mặc định</button>
+                    <button onclick="saveQuestions()" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg text-sm shadow">💾 Lưu lại</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Popup -->
+    <div id="notification" class="bg-white border-4 p-4 rounded-2xl shadow-2xl flex flex-col items-center justify-center text-center w-72">
+        <div id="noti-icon" class="text-4xl mb-1">🎉</div>
+        <h3 id="noti-title" class="text-xl font-black heading-font mb-1">CHÍNH XÁC!</h3>
+        <p id="noti-keyword" class="text-lg font-bold text-blue-600 mb-1 hidden truncate w-full"></p>
+        <div id="noti-score" class="font-bold text-sm rounded-full px-3 py-0.5 mt-1"></div>
+    </div>
+
+    <script>
+        let currentTeam = "";
+        let score = 0;
+        let timeSeconds = 0;
+        let timerInterval;
+        let wordsFoundCount = 0;
+        let totalWords = gameData.length;
+        
+        const SCORE_CORRECT = 100;
+        const SCORE_WRONG = -10;
+        const SCORE_BONUS = 500;
+
+        let grid = [];
+        let gridSize = 0;
+        let isDragging = false;
+        let dragStartCell = null;
+        let dragCurrentPath = [];
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration) {
+            try {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+        function playSuccess() { playTone(600, 'sine', 0.1); setTimeout(() => playTone(800, 'sine', 0.2), 100); }
+        function playError() { playTone(200, 'sawtooth', 0.1); }
+        function playWinGame() { playTone(500, 'triangle', 0.2); setTimeout(() => playTone(800, 'triangle', 0.4), 300); }
+
+        function generateGrid() {
+            let maxLength = 0;
+            gameData.forEach(item => { if(item.keyword.length > maxLength) maxLength = item.keyword.length; });
+            gridSize = Math.max(maxLength + 2, Math.ceil(Math.sqrt(totalWords * 10)));
+            if(gridSize < 12) gridSize = 12;
+
+            let placedAll = false;
+            let attempts = 0;
+
+            while (!placedAll && attempts < 50) {
+                grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(''));
+                let success = true;
+                const directions = [{dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1}, {dx: 1, dy: 1}];
+
+                for (let i = 0; i < gameData.length; i++) {
+                    let word = gameData[i].keyword;
+                    let placed = false;
+                    let wordAttempts = 0;
+                    while (!placed && wordAttempts < 300) {
+                        let dir = directions[Math.floor(Math.random() * directions.length)];
+                        let startX = Math.floor(Math.random() * gridSize);
+                        let startY = Math.floor(Math.random() * gridSize);
+                        
+                        let endX = startX + (word.length - 1) * dir.dx;
+                        let endY = startY + (word.length - 1) * dir.dy;
+                        if (endX >= 0 && endX < gridSize && endY >= 0 && endY < gridSize) {
+                            let canPlace = true;
+                            for (let j = 0; j < word.length; j++) {
+                                let c = grid[startY + j * dir.dy][startX + j * dir.dx];
+                                if (c !== '' && c !== word[j]) { canPlace = false; break; }
+                            }
+                            if (canPlace) {
+                                for (let j = 0; j < word.length; j++) {
+                                    grid[startY + j * dir.dy][startX + j * dir.dx] = word[j];
+                                }
+                                placed = true;
+                            }
+                        }
+                        wordAttempts++;
+                    }
+                    if (!placed) { success = false; break; }
+                }
+                if (success) placedAll = true;
+                else gridSize++;
+            }
+
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    if (grid[y][x] === '') grid[y][x] = alphabet[Math.floor(Math.random() * alphabet.length)];
+                }
+            }
+        }
+
+        function renderGrid() {
+            const gridEl = document.getElementById('word-grid');
+            gridEl.innerHTML = '';
+            gridEl.style.display = 'grid';
+            gridEl.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+            gridEl.style.gridTemplateRows = `repeat(${gridSize}, minmax(0, 1fr))`;
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.textContent = grid[y][x];
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    cell.addEventListener('mousedown', handlePointerDown);
+                    cell.addEventListener('mouseenter', handlePointerEnter);
+                    cell.addEventListener('touchstart', handleTouchStart, {passive: false});
+                    gridEl.appendChild(cell);
+                }
+            }
+            document.addEventListener('mouseup', handlePointerUp);
+            document.addEventListener('touchmove', handleTouchMove, {passive: false});
+            document.addEventListener('touchend', handlePointerUp);
+        }
+
+        function renderClues() {
+            const container = document.getElementById('clues-container');
+            container.innerHTML = '';
+            document.getElementById('total-display').innerText = totalWords;
+            document.getElementById('found-display').innerText = wordsFoundCount;
+
+            gameData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = `clue-card p-3 rounded-xl shadow-sm border border-gray-100 ${item.found ? 'solved' : ''}`;
+                card.id = `clue-${item.id}`;
+                
+                let statusHtml = item.found 
+                    ? `<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded">✅ ĐÃ GIẢI</span>` 
+                    : `<span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded">🔒 CHƯA GIẢI</span>`;
+                
+                let keywordHtml = item.found ? `<div class="mt-2 bg-white border border-emerald-200 rounded p-1 text-center text-emerald-700 font-black tracking-widest text-xs">${item.rawAnswer.toUpperCase()}</div>` : '';
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-black text-gray-400">CÂU ${(index + 1).toString().padStart(2, '0')}</span>
+                        ${statusHtml}
+                    </div>
+                    <p class="text-gray-700 font-medium text-xs md:text-sm leading-snug">${item.question} <strong class="text-emerald-600">(${item.keyword.length} chữ)</strong></p>
+                    ${keywordHtml}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function getCell(x, y) { return document.querySelector(`.grid-cell[data-x="${x}"][data-y="${y}"]`); }
+        function clearSelection() {
+            document.querySelectorAll('.grid-cell.selected').forEach(c => c.classList.remove('selected'));
+            dragCurrentPath = [];
+        }
+
+        function calculatePath(startCell, currentCell) {
+            let x1 = parseInt(startCell.dataset.x), y1 = parseInt(startCell.dataset.y);
+            let x2 = parseInt(currentCell.dataset.x), y2 = parseInt(currentCell.dataset.y);
+            let path = [];
+            let dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+            if (x1 === x2 || y1 === y2 || dx === dy) {
+                let xStep = x1 === x2 ? 0 : (x2 > x1 ? 1 : -1);
+                let yStep = y1 === y2 ? 0 : (y2 > y1 ? 1 : -1);
+                let dist = Math.max(dx, dy);
+                for (let i = 0; i <= dist; i++) {
+                    let c = getCell(x1 + i * xStep, y1 + i * yStep);
+                    if (c) path.push(c);
+                }
+            }
+            return path;
+        }
+
+        function highlightPath(path) {
+            clearSelection();
+            path.forEach(cell => {
+                if(!cell.classList.contains('found')) cell.classList.add('selected');
+                dragCurrentPath.push(cell);
+            });
+        }
+
+        function handlePointerDown(e) {
+            if(e.target.classList.contains('found')) return;
+            isDragging = true; dragStartCell = e.target; highlightPath([dragStartCell]);
+        }
+        function handlePointerEnter(e) {
+            if (!isDragging || !dragStartCell) return;
+            let path = calculatePath(dragStartCell, e.target);
+            if (path.length > 0) highlightPath(path);
+        }
+        function handleTouchStart(e) {
+            if(e.touches.length > 1) return;
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if(target && target.classList.contains('grid-cell') && !target.classList.contains('found')) {
+                e.preventDefault();
+                isDragging = true; dragStartCell = target; highlightPath([dragStartCell]);
+            }
+        }
+        function handleTouchMove(e) {
+            if (!isDragging || !dragStartCell) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && target.classList.contains('grid-cell')) {
+                let path = calculatePath(dragStartCell, target);
+                if (path.length > 0) highlightPath(path);
+            }
+        }
+        function handlePointerUp() {
+            if (!isDragging) return;
+            isDragging = false;
+            if (dragCurrentPath.length > 0) checkAnswer(dragCurrentPath);
+            clearSelection();
+        }
+
+        function checkAnswer(pathElements) {
+            let selectedWord = pathElements.map(c => c.textContent).join('');
+            let reversedWord = selectedWord.split('').reverse().join('');
+            let foundIndex = gameData.findIndex(item => !item.found && (item.keyword === selectedWord || item.keyword === reversedWord));
+
+            if (foundIndex !== -1) {
+                const item = gameData[foundIndex];
+                item.found = true;
+                wordsFoundCount++;
+                pathElements.forEach(c => { c.classList.remove('selected'); c.classList.add('found'); });
+                updateScore(SCORE_CORRECT);
+                playSuccess();
+                showNotification(true, item.rawAnswer, SCORE_CORRECT);
+                renderClues();
+
+                if (wordsFoundCount === totalWords) setTimeout(endGame, 1000);
+            } else if (selectedWord.length > 2) {
+                const house = document.getElementById('house-element');
+                house.classList.remove('shake'); void house.offsetWidth; house.classList.add('shake');
+                updateScore(SCORE_WRONG);
+                playError();
+                showNotification(false, "", SCORE_WRONG);
+            }
+        }
+
+        function updateScore(pts) {
+            score = Math.max(0, score + pts);
+            document.getElementById('score-display').innerText = score;
+        }
+
+        function showNotification(isCorrect, keyword, pts) {
+            const noti = document.getElementById('notification');
+            const icon = document.getElementById('noti-icon');
+            const title = document.getElementById('noti-title');
+            const kw = document.getElementById('noti-keyword');
+            const sc = document.getElementById('noti-score');
+
+            if (isCorrect) {
+                noti.className = "bg-white border-4 border-emerald-400 p-4 rounded-2xl shadow-2xl fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] w-72 text-center transition-all show";
+                icon.innerText = "🎉"; title.innerText = "CHÍNH XÁC!"; title.className = "text-xl font-black text-emerald-600 mb-1";
+                kw.innerText = keyword.toUpperCase(); kw.classList.remove('hidden');
+                sc.innerText = `+${pts} ĐIỂM`; sc.className = "font-bold text-sm rounded-full px-3 py-0.5 mt-1 bg-emerald-100 text-emerald-700";
+            } else {
+                noti.className = "bg-white border-4 border-red-400 p-4 rounded-2xl shadow-2xl fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] w-72 text-center transition-all show";
+                icon.innerText = "❌"; title.innerText = "Chưa chính xác!"; title.className = "text-xl font-black text-red-600 mb-1";
+                kw.classList.add('hidden');
+                sc.innerText = `${pts} ĐIỂM`; sc.className = "font-bold text-sm rounded-full px-3 py-0.5 mt-1 bg-red-100 text-red-700";
+            }
+            setTimeout(() => noti.classList.remove('show'), 1500);
+        }
+
+        function formatTime(sec) {
+            return `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
+        }
+        function startTimer() {
+            timeSeconds = 0;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeSeconds++;
+                document.getElementById('timer-display').innerText = formatTime(timeSeconds);
+            }, 1000);
+        }
+
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function startGame() {
+            const teamInput = document.getElementById('team-name').value.trim();
+            if (!teamInput) { alert("Vui lòng nhập tên đội!"); document.getElementById('team-name').focus(); return; }
+            currentTeam = teamInput;
+            document.getElementById('display-team-name').innerText = currentTeam;
+            score = 0; wordsFoundCount = 0; updateScore(0);
+            gameData.forEach(i => i.found = false);
+            generateGrid(); renderGrid(); renderClues(); startTimer();
+            switchScreen('game-screen');
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            updateScore(SCORE_BONUS);
+            playWinGame();
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+            saveScore();
+            document.getElementById('final-team').innerText = currentTeam;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-time').innerText = formatTime(timeSeconds);
+            switchScreen('end-screen');
+        }
+
+        function resetGame() { switchScreen('start-screen'); document.getElementById('team-name').value = ''; }
+
+        const LS_KEY = 'bio_game_leaderboard';
+        function saveScore() {
+            let lb = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+            lb.push({ team: currentTeam, score: score, time: timeSeconds });
+            lb.sort((a, b) => b.score !== a.score ? b.score - a.score : a.time - b.time);
+            localStorage.setItem(LS_KEY, JSON.stringify(lb));
+        }
+
+        function showLeaderboard() {
+            const lb = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+            if (lb.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Chưa có kết quả.</td></tr>';
+            } else {
+                lb.forEach((e, i) => {
+                    tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${i+1}</td><td class="p-3 font-bold text-blue-600">${e.team}</td><td class="p-3 text-right font-black text-yellow-600">${e.score}</td><td class="p-3 text-right text-red-500 font-mono">${formatTime(e.time)}</td></tr>`;
+                });
+            }
+            document.getElementById('leaderboard-screen').classList.add('active');
+            document.getElementById('teacher-admin').classList.add('hidden');
+        }
+        function closeLeaderboard() { document.getElementById('leaderboard-screen').classList.remove('active'); }
+        function toggleTeacherAdmin() { document.getElementById('teacher-admin').classList.toggle('hidden'); }
+        
+        function clearLeaderboard() {
+            if (document.getElementById('teacher-pwd').value === 'Giaovien123') {
+                if(confirm("Xóa toàn bộ bảng xếp hạng?")) { localStorage.removeItem(LS_KEY); showLeaderboard(); }
+            } else { alert("Sai mật khẩu!"); }
+        }
+
+        function openEditQuestions() {
+            if (document.getElementById('teacher-pwd').value === 'Giaovien123') {
+                const container = document.getElementById('questions-list-container');
+                container.innerHTML = '';
+                rawData.forEach(item => {
+                    container.innerHTML += `<div class="q-row flex gap-2 bg-gray-50 p-3 rounded-lg border items-center"><div class="flex-1"><textarea class="q-input w-full p-2 border rounded text-xs" rows="2">${item.question}</textarea></div><div class="w-1/3"><input type="text" class="a-input w-full p-2 border rounded text-xs font-bold uppercase" value="${item.answer}"></div><button onclick="this.parentElement.remove()" class="text-red-500 font-bold px-2">✕</button></div>`;
+                });
+                document.getElementById('leaderboard-screen').classList.remove('active');
+                const modal = document.getElementById('edit-questions-screen');
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+            } else { alert("Sai mật khẩu!"); }
+        }
+
+        function closeEditQuestions() {
+            const modal = document.getElementById('edit-questions-screen');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+            document.getElementById('leaderboard-screen').classList.add('active');
+        }
+
+        function addNewQuestionRow() {
+            const container = document.getElementById('questions-list-container');
+            const div = document.createElement('div');
+            div.className = "q-row flex gap-2 bg-gray-50 p-3 rounded-lg border items-center";
+            div.innerHTML = `<div class="flex-1"><textarea class="q-input w-full p-2 border rounded text-xs" rows="2" placeholder="Câu hỏi..."></textarea></div><div class="w-1/3"><input type="text" class="a-input w-full p-2 border rounded text-xs font-bold uppercase" placeholder="ĐÁP ÁN"></div><button onclick="this.parentElement.remove()" class="text-red-500 font-bold px-2">✕</button>`;
+            container.appendChild(div);
+        }
+
+        function restoreDefaultQuestions() {
+            if(confirm("Khôi phục mặc định?")) {
+                localStorage.removeItem(LS_QUESTIONS_KEY);
+                rawData = JSON.parse(JSON.stringify(defaultRawData));
+                closeEditQuestions();
+                initGameData();
+                alert("Đã khôi phục thành công!");
+            }
+        }
+
+        function saveQuestions() {
+            const rows = document.querySelectorAll('.q-row');
+            let newData = [];
+            rows.forEach(r => {
+                let q = r.querySelector('.q-input').value.trim();
+                let a = r.querySelector('.a-input').value.trim();
+                if(q && a) newData.push({ question: q, answer: a });
+            });
+            if(newData.length < 5) { alert("Cần tối thiểu 5 câu hỏi!"); return; }
+            rawData = newData;
+            localStorage.setItem(LS_QUESTIONS_KEY, JSON.stringify(rawData));
+            initGameData();
+            totalWords = gameData.length;
+            alert("Lưu thành công!");
+            closeEditQuestions();
+        }
+    </script>
+</body>
+</html>
